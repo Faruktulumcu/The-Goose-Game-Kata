@@ -17,7 +17,8 @@ public class Application {
 
     private static List<Player> players;
     private static boolean doesGameStarted = false;
-    private final static String EXIT_COMMAND = "end";
+    private static boolean doesGameFinished = false;
+    private final static String EXIT_COMMAND = "exit";
     private final static String ADD_PLAYER_COMMAND = "add player";
     private final static String MOVE_PLAYER_COMMAND = "move";
     private final static String MISUNDERSTAND_COMMAND = "i did not understand";
@@ -40,7 +41,7 @@ public class Application {
         String line = "";
         String command = "";
 
-        while (!command.equals(EXIT_COMMAND)) {
+        while (!command.equals(EXIT_COMMAND) && !doesGameFinished) {
             line = System.console().readLine();
             command = decodeCommand(line);
             switch (command) {
@@ -136,12 +137,6 @@ public class Application {
             System.err.println("Game not started, please enter <start game> in order to start.");
             return;
         }
-
-        /*
-        int d1 = rollTheDice();
-        int d2 = rollTheDice();
-        System.out.println("You wrote: handleMovePlayerCommand: I am rolling the dice " + d1 + ", " + d2);
-         */
         command = Utils.clearCaseInsensitive(command, MOVE_PLAYER_COMMAND);
         command = command.trim();
         //clear also player name
@@ -156,7 +151,14 @@ public class Application {
 
         command = Utils.clearCaseInsensitive(command, extractedPlayer.getName());
 
-        DiceNumbers diceNumbers = extractDiceNumbers(command);
+        DiceNumbers diceNumbers;
+
+        // 4. The game throws the dice
+        if (command.trim().isEmpty()) {
+            diceNumbers = new DiceNumbers(rollTheDice(), rollTheDice());
+        } else {
+            diceNumbers = extractDiceNumbers(command);
+        }
 
         if (Objects.isNull(diceNumbers)) {
             System.err.println("Invalid numbers entered, please enter a correct syntax like below: \n Move Mario 4, 2");
@@ -188,6 +190,7 @@ public class Application {
         if (targetPosition == WIN_POSITION) {
             String winMessage = " " + p.getName() + " Wins!!";
             finalMessage += winMessage;
+            doesGameFinished = true;
         }
 
         if (targetPosition > WIN_POSITION) {
@@ -250,11 +253,11 @@ public class Application {
 
     private static Player extractPlayer(String command) {
         // example of player names present: Mario Rossi, Marco Bianchi, Mario Rossana
-        // pippo, pippooo
-        // reason of why used starts and not contains
+        // pippo, pippooo || move pippo 2,3 || move pippo (without end space)
         for (Player p : players) {
-            //if (command.toLowerCase().contains(p.getName().toLowerCase())) {
-            if (command.toLowerCase().startsWith(p.getName().toLowerCase()) && command.toLowerCase().contains(p.getName().toLowerCase() + " ")) {
+            if (command.toLowerCase().startsWith(p.getName().toLowerCase())
+                    && command.toLowerCase().contains(p.getName().toLowerCase() + " ")
+                    || (command.toLowerCase().startsWith(p.getName().toLowerCase()) && command.toLowerCase().endsWith(p.getName().toLowerCase()))) {
                 return p;
             }
         }
