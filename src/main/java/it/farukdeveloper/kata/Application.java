@@ -174,6 +174,7 @@ public class Application {
         //"Pippo rolls 3, 2. Pippo moves from 60 to 63. Pippo bounces! Pippo returns to 61"
 
         String playerCurrentPosition = p.getPosition() == 0 ? "Start" : String.valueOf(p.getPosition());
+        int curretPlayerPreviousPosition = p.getPosition();
         int pIdx = players.indexOf(p);
         Integer targetPosition = p.getPosition() + diceNumbers.getDice1() + diceNumbers.getDice2();
 
@@ -207,15 +208,30 @@ public class Application {
         p.setPosition(moveInfo.getTargetPosition());
         players.set(pIdx, p);
 
+        checkForPrank(p, moveInfo, curretPlayerPreviousPosition);
+
         System.out.println(moveInfo.getFinalMessage());
 
+    }
+
+    private static void checkForPrank(Player currentPlayer, PlayerMoveInfo moveInfo, int curretPlayerPreviousPosition) {
+        for (Player p : players) {
+            if (!p.getName().equals(currentPlayer.getName()) && p.getPosition() == currentPlayer.getPosition()) {
+                String prankMessage = " On " + p.getPosition() + " there is " + p.getName() + ", who returns to " + curretPlayerPreviousPosition;
+                int pIdx = players.indexOf(p);
+                p.setPosition(curretPlayerPreviousPosition);
+                players.set(pIdx, p);
+                moveInfo.setFinalMessage(moveInfo.getFinalMessage() + prankMessage);
+                return;
+            }
+        }
     }
 
     private static String decodeTargetPositionString(int targetPosition) {
         if (targetPosition == BRIDGE_POSITION) {
             return "The Bridge.";
         }
-        return (targetPosition > WIN_POSITION ? "63" : String.valueOf(targetPosition));
+        return (targetPosition > WIN_POSITION ? String.valueOf(WIN_POSITION) : String.valueOf(targetPosition));
     }
 
     /**
