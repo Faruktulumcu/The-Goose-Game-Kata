@@ -16,8 +16,8 @@ Goose game is a game where two or more players move pieces around a track by rol
   enjoy the game! :)
 
 # Game commands
-1) "add player <name>"           | adds player                               | -> ex: add player Mario
+1) "add player name"             | adds player                               | -> ex: add player Mario
 2) "start game"                  | starts game                               | -> ex: start game
-3) "move <playerName>"           | moves player with system's dice numbers   | -> ex: move Mario
-4) "move <playerName> <X>, <Y>"  | moves player from current position to x+y | -> ex: move Mario 2, 4
+3) "move playerName"             | moves player with system's dice numbers   | -> ex: move Mario
+4) "move playerName X, Y"        | moves player from current position to x+y | -> ex: move Mario 2, 4
 5) "exit"                        | closes from game                          | -> ex: exit                   | closes from game                          | -> ex: exit
