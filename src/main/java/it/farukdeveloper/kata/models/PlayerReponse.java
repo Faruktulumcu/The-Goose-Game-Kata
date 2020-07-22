@@ -49,7 +49,7 @@ public class PlayerReponse {
     }
 
     public void concatToFinalMessage(String message) {
-        this.finalMessage += finalMessage;
+        this.finalMessage += message;
     }
 
 }

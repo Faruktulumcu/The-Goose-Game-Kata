@@ -41,6 +41,14 @@ public class Application {
         players = new ArrayList<>();
 
         System.out.println("Welcome to ### The Goose Game Kata ### ");
+        System.out.println("*************************************************************************************************************");
+        System.out.println("POSSIBLE COMMANDS ARE: ");
+        System.out.println("1) \"add player <name>\"           | adds player                               | -> ex: add player Mario");
+        System.out.println("2) \"start game\"                  | starts game                               | -> ex: start game");
+        System.out.println("3) \"move <playerName>\"           | moves player with system's dice numbers   | -> ex: move Mario");
+        System.out.println("4) \"move <playerName> <X>, <Y>\"  | moves player from current position to x+y | -> ex: move Mario 2, 4");
+        System.out.println("5) \"exit\"                        | closes from game                          | -> ex: exit");
+        System.out.println("*************************************************************************************************************");
 
         String userInput = "";
         String command = "";
@@ -69,7 +77,7 @@ public class Application {
             System.out.println(playerReponse.getFinalMessage());
         }
 
-        System.out.println("\n\nThank you for enjoying with this game \nSee you! :) ");
+        System.out.println("\n\nThank you for enjoying with this game\nSee you! :) ");
 
     }
 
@@ -303,7 +311,7 @@ public class Application {
 
         // if there are less than 2 players game cannot start
         if (players.size() < 2) {
-            return new PlayerReponse("There are not enough players, it is necessary almost 2 players, plase insert player.");
+            return new PlayerReponse("There are not enough players, it is necessary at least 2 players, plase insert player.");
         }
 
         doesGameStarted = true;
