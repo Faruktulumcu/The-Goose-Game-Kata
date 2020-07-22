@@ -2,7 +2,7 @@ package it.farukdeveloper.kata;
 
 import it.farukdeveloper.kata.models.DiceNumbers;
 import it.farukdeveloper.kata.models.Player;
-import it.farukdeveloper.kata.models.PlayerMoveInfo;
+import it.farukdeveloper.kata.models.PlayerReponse;
 import it.farukdeveloper.kata.utils.Utils;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -11,11 +11,15 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
+ * The Goose Game Kata thought only for Java SE and Console platform
+ *
  * @author Faruk Tulumcu
  */
 public class Application {
 
+    // created a global and shared player list in order to not reference in all methods
     private static List<Player> players;
+
     private static boolean doesGameStarted = false;
     private static boolean doesGameFinished = false;
     private final static String EXIT_COMMAND = "exit";
@@ -38,35 +42,34 @@ public class Application {
 
         System.out.println("Welcome to ### The Goose Game Kata ### ");
 
-        String line = "";
+        String userInput = "";
         String command = "";
+        PlayerReponse playerReponse;
 
         while (!command.equals(EXIT_COMMAND) && !doesGameFinished) {
-            line = System.console().readLine();
-            command = decodeCommand(line);
+            userInput = System.console().readLine();
+            command = decodeCommand(userInput);
             switch (command) {
                 case ADD_PLAYER_COMMAND:
-                    handleAddPlayerCommand(line);
+                    playerReponse = handleAddPlayerCommand(userInput);
                     break;
                 case MOVE_PLAYER_COMMAND:
-                    handleMovePlayerCommand(line);
+                    playerReponse = handleMovePlayerCommand(userInput);
                     break;
                 case START_GAME_COMMAND:
-                    handleStartGameCommand();
+                    playerReponse = handleStartGameCommand();
                     break;
                 case EXIT_COMMAND:
-                    handleExitCommand(line);
-                    break;
-                case MISUNDERSTAND_COMMAND:
-                    handleMisunderstandPlayerCommand(line);
+                    playerReponse = handleExitCommand();
                     break;
                 default:
-                    handleMisunderstandPlayerCommand(line);
+                    playerReponse = handleMisunderstandPlayerCommand();
                     break;
             }
+            System.out.println(playerReponse.getFinalMessage());
         }
 
-        System.out.println("Thank you for playing ### The Goose Game Kata ### \n See you! :) ");
+        System.out.println("\n\nThank you for enjoying with this game \nSee you! :) ");
 
     }
 
@@ -74,24 +77,24 @@ public class Application {
      * decodes command from user input, the method of decode is FIV (First
      * Inserted Valid)
      *
-     * @param line
+     * @param userInput
      * @return
      */
-    private static String decodeCommand(String line) {
-        line = line.toLowerCase();
-        if (line.startsWith(ADD_PLAYER_COMMAND)) {
+    private static String decodeCommand(String userInput) {
+        userInput = userInput.toLowerCase();
+        if (userInput.startsWith(ADD_PLAYER_COMMAND)) {
             return ADD_PLAYER_COMMAND;
         }
 
-        if (line.startsWith(MOVE_PLAYER_COMMAND)) {
+        if (userInput.startsWith(MOVE_PLAYER_COMMAND)) {
             return MOVE_PLAYER_COMMAND;
         }
 
-        if (line.startsWith(EXIT_COMMAND)) {
+        if (userInput.startsWith(EXIT_COMMAND)) {
             return EXIT_COMMAND;
         }
 
-        if (line.startsWith(START_GAME_COMMAND)) {
+        if (userInput.startsWith(START_GAME_COMMAND)) {
             return START_GAME_COMMAND;
         }
 
@@ -102,171 +105,180 @@ public class Application {
      * inserts new player to start of kata
      *
      * @param command
+     * @return
      */
-    private static void handleAddPlayerCommand(String command) {
-
-        // -> fix -> exclude keywords from players name, like move -> move move 4, 2
+    private static PlayerReponse handleAddPlayerCommand(String command) {
         // if game started user cannot add another player until it ends
         if (doesGameStarted) {
-            System.out.println("Game already started, you cannot add new player until game ends!");
-            return;
+            return new PlayerReponse("Game already started, you cannot add new player until game ends!");
         }
 
         command = Utils.clearCaseInsensitive(command, ADD_PLAYER_COMMAND);
         String playerName = command.trim();
         if (playerName.isEmpty()) {
-            System.out.println("Please specify a valid player name to insert in game, the right syntax is like below:\nAdd Player Mario");
-            return;
+            return new PlayerReponse("Please specify a valid player name, the right syntax is like below:\nAdd Player Mario");
+        }
+
+        if (playerName.toLowerCase().equals(ADD_PLAYER_COMMAND) || playerName.toLowerCase().equals(MOVE_PLAYER_COMMAND)) {
+            return new PlayerReponse("Please specify a valid player name, player name cannot be keyword of command like (move, add player)");
         }
 
         // checks if there is an existing player with inserted name (case insensitive)
         Player foundPlayer = findPlayerByName(playerName);
         if (Objects.nonNull(foundPlayer)) {
-            System.out.println(foundPlayer.getName() + ": already existing player");
+            return new PlayerReponse(foundPlayer.getName() + ": already existing player");
         } else {
             foundPlayer = new Player(playerName);
             players.add(foundPlayer);
             String allPlayersName = String.join(", ", players.stream().map(p -> p.getName()).collect(Collectors.toList()));
-            System.out.println("Players: " + allPlayersName);
+            return new PlayerReponse("Players: " + allPlayersName);
         }
     }
 
-    private static void handleMovePlayerCommand(String command) {
-
+    private static PlayerReponse handleMovePlayerCommand(String command) {
+        PlayerReponse moveInfo = new PlayerReponse();
         if (!doesGameStarted) {
-            System.err.println("Game not started, please enter <start game> in order to start.");
-            return;
+            moveInfo.setFinalMessage("Game not started, please enter \"start game\" in order to start.");
+            return moveInfo;
         }
         command = Utils.clearCaseInsensitive(command, MOVE_PLAYER_COMMAND);
         command = command.trim();
         //clear also player name
 
         // find which player to move
-        //move Pippo 4, 2
         Player extractedPlayer = extractPlayer(command);
         if (Objects.isNull(extractedPlayer)) {
-            System.err.println("I do not understand which player move, please enter a correct syntax like below: \n Move Mario 4, 2");
-            return;
+            moveInfo.setFinalMessage("I do not understand which player move, please enter a correct syntax like below: \nMove Mario 4, 2 \nMove Mario");
+            return moveInfo;
         }
 
+        // remove also player name from user command
         command = Utils.clearCaseInsensitive(command, extractedPlayer.getName());
 
         DiceNumbers diceNumbers;
 
-        // 4. The game throws the dice
+        // If there aren't dice info -> the dice info will added by system -> 4. The game throws the dice 
         if (command.trim().isEmpty()) {
             diceNumbers = new DiceNumbers(rollTheDice(), rollTheDice());
         } else {
-            diceNumbers = extractDiceNumbers(command);
+            diceNumbers = extractDiceNumbers(command, moveInfo);
         }
 
         if (Objects.isNull(diceNumbers)) {
-            System.err.println("Invalid numbers entered, please enter a correct syntax like below: \n Move Mario 4, 2");
-            return;
+            moveInfo.concatToFinalMessage("Invalid numbers entered, please enter a correct syntax like below: \nMove Mario 4, 2 \nMove Mario");
+            return moveInfo;
         }
 
-        movePlayer(extractedPlayer, diceNumbers);
+        moveInfo = rollPlayer(extractedPlayer, diceNumbers, moveInfo);
 
+        return moveInfo;
     }
 
-    private static void movePlayer(Player p, DiceNumbers diceNumbers) {
-        //Pippo rolls 4, 2. Pippo moves from Start to 6
-        //"Pippo rolls 3, 2. Pippo moves from 60 to 63. Pippo bounces! Pippo returns to 61"
+    private static PlayerReponse rollPlayer(Player player, DiceNumbers diceNumbers, PlayerReponse moveInfo) {
+        int curretPlayerPreviousPosition = player.getPosition();
+        int pIdx = players.indexOf(player);
+        Integer targetPosition = player.getPosition() + diceNumbers.getDice1() + diceNumbers.getDice2();
 
-        String playerCurrentPosition = p.getPosition() == 0 ? "Start" : String.valueOf(p.getPosition());
-        int curretPlayerPreviousPosition = p.getPosition();
-        int pIdx = players.indexOf(p);
-        Integer targetPosition = p.getPosition() + diceNumbers.getDice1() + diceNumbers.getDice2();
-
-        String rollMessage = p.getName() + " rolls " + diceNumbers.getDice1() + ", " + diceNumbers.getDice2() + ". ";
-        String moveMessage = p.getName() + " moves from " + playerCurrentPosition + " to " + decodeTargetPositionString(targetPosition);
+        String rollMessage = player.getName() + " rolls " + diceNumbers.getDice1() + ", " + diceNumbers.getDice2() + ". ";
+        String moveMessage = player.getName() + " moves from " + decodeFromPositionString(player.getPosition()) + " to " + decodeTargetPositionString(targetPosition);
         String finalMessage = rollMessage + moveMessage;
 
         if (targetPosition == BRIDGE_POSITION) {
             targetPosition = BRIDGE_JUMP_TO_POSITION;
-            String bridgeMessage = " " + p.getName() + " jumps to " + BRIDGE_JUMP_TO_POSITION;
+            String bridgeMessage = " " + player.getName() + " jumps to " + BRIDGE_JUMP_TO_POSITION;
             finalMessage += bridgeMessage;
         }
 
         if (targetPosition == WIN_POSITION) {
-            String winMessage = " " + p.getName() + " Wins!!";
+            String winMessage = " " + player.getName() + " Wins!!";
             finalMessage += winMessage;
             doesGameFinished = true;
         }
 
         if (targetPosition > WIN_POSITION) {
-            String bounceMessage = " " + p.getName() + " bounces! " + p.getName() + " returns to " + BOUNCE_POSITION;
+            String bounceMessage = " " + player.getName() + " bounces! " + player.getName() + " returns to " + BOUNCE_POSITION;
             finalMessage += bounceMessage;
             targetPosition = BOUNCE_POSITION;
         }
 
-        //"Pippo rolls 2, 2. Pippo moves from 10 to 14, The Goose. Pippo moves again and goes to 18, The Goose. Pippo moves again and goes to 22"
-        PlayerMoveInfo moveInfo = new PlayerMoveInfo(targetPosition, finalMessage);
+        moveInfo = new PlayerReponse(targetPosition, finalMessage);
 
-        handleGoosePosition(moveInfo, diceNumbers, p); // TODO enhance it
+        // works by reference
+        checkAndHandleGoosePosition(moveInfo, diceNumbers, player); // TODO enhance it
 
-        p.setPosition(moveInfo.getTargetPosition());
-        players.set(pIdx, p);
+        player.setPosition(moveInfo.getTargetPosition());
+        players.set(pIdx, player);
 
-        checkForPrank(p, moveInfo, curretPlayerPreviousPosition);
+        //
+        moveInfo = checkAndHandleForPrank(player, moveInfo, curretPlayerPreviousPosition);
 
-        System.out.println(moveInfo.getFinalMessage());
-
-    }
-
-    private static void checkForPrank(Player currentPlayer, PlayerMoveInfo moveInfo, int curretPlayerPreviousPosition) {
-        for (Player p : players) {
-            if (!p.getName().equals(currentPlayer.getName()) && p.getPosition() == currentPlayer.getPosition()) {
-                String prankMessage = " On " + p.getPosition() + " there is " + p.getName() + ", who returns to " + curretPlayerPreviousPosition;
-                int pIdx = players.indexOf(p);
-                p.setPosition(curretPlayerPreviousPosition);
-                players.set(pIdx, p);
-                moveInfo.setFinalMessage(moveInfo.getFinalMessage() + prankMessage);
-                return;
-            }
-        }
-    }
-
-    private static String decodeTargetPositionString(int targetPosition) {
-        if (targetPosition == BRIDGE_POSITION) {
-            return "The Bridge.";
-        }
-        return (targetPosition > WIN_POSITION ? String.valueOf(WIN_POSITION) : String.valueOf(targetPosition));
+        return moveInfo;
     }
 
     /**
-     * handle goose position with references
-     *
+     * adds prank message to moveInfo object sets pranked users position
+     * @param currentPlayer
+     * @param moveInfo
+     * @param curretPlayerPreviousPosition
+     */
+    private static PlayerReponse checkAndHandleForPrank(Player currentPlayer, PlayerReponse moveInfo, int curretPlayerPreviousPosition) {
+        for (Player p : players) {
+            if (!p.getName().equals(currentPlayer.getName()) && p.getPosition() == currentPlayer.getPosition()) {
+                String prankMessage = " On " + decodeFromPositionString(p.getPosition()) + " there is " + p.getName() + ", who returns to " + decodeFromPositionString(curretPlayerPreviousPosition);
+                int pIdx = players.indexOf(p);
+                p.setPosition(curretPlayerPreviousPosition);
+                players.set(pIdx, p);
+                moveInfo.concatToFinalMessage(prankMessage);
+                return moveInfo;
+            }
+        }
+        return moveInfo;
+    }
+
+
+    /**
+     * handle goose position with moveInfo reference
      * @return
      */
-    private static void handleGoosePosition(PlayerMoveInfo moveInfo, DiceNumbers diceNumbers, Player p) {
+    private static void checkAndHandleGoosePosition(PlayerReponse moveInfo, DiceNumbers diceNumbers, Player p) {
         if (GOOSE_POSITIONS.indexOf(moveInfo.getTargetPosition()) != -1) {
-            moveInfo.setTargetPosition(moveInfo.getTargetPosition() + diceNumbers.getDice1() + diceNumbers.getDice2());
+            moveInfo.addToTargetPosition(diceNumbers.getDice1() + diceNumbers.getDice2());
             String gooseMessage = ", The Goose." + p.getName() + " moves again and goes to " + moveInfo.getTargetPosition();
-            moveInfo.setFinalMessage(moveInfo.getFinalMessage() + gooseMessage);
-            handleGoosePosition(moveInfo, diceNumbers, p); // check recursively
+            moveInfo.concatToFinalMessage(gooseMessage);
+            checkAndHandleGoosePosition(moveInfo, diceNumbers, p); // checks recursively
         }
     }
 
-    private static DiceNumbers extractDiceNumbers(String command) {
+    /**
+     * extracts dice numbers from user input command
+     * @param command
+     * @param moveInfo
+     * @return 
+     */
+    private static DiceNumbers extractDiceNumbers(String command, PlayerReponse moveInfo) {
         String[] splittedNumbers = command.split(",");
         if (splittedNumbers.length == 2) {
             try {
                 int dice1 = Integer.valueOf(splittedNumbers[0].trim());
                 int dice2 = Integer.valueOf(splittedNumbers[1].trim());
                 if (dice1 < 1 || dice1 > 6 || dice2 < 1 || dice2 > 6) {
-                    System.err.println("Error: you entered an invalid dice number ![1-6] ");
+                    moveInfo.concatToFinalMessage("Error: you entered an invalid dice number ![1-6] ");
                     return null;
                 }
                 return new DiceNumbers(dice1, dice2);
             } catch (NumberFormatException e) {
-                System.err.println("Error invalid number: " + e.getMessage());
+                moveInfo.concatToFinalMessage("Error invalid number: " + e.getMessage());
                 return null;
             }
         }
         return null;
     }
 
+    /**
+     * extract a registered/added player from user input command
+     * @param command
+     * @return 
+     */
     private static Player extractPlayer(String command) {
         // example of player names present: Mario Rossi, Marco Bianchi, Mario Rossana
         // pippo, pippooo || move pippo 2,3 || move pippo (without end space)
@@ -280,38 +292,76 @@ public class Application {
         return null;
     }
 
-    private static void handleStartGameCommand() {
+    /**
+     * handles start game command
+     * @return 
+     */
+    private static PlayerReponse handleStartGameCommand() {
         if (doesGameStarted) {
-            System.out.println("Game already started!");
-            return;
+            return new PlayerReponse("Game already started!");
         }
 
         // if there are less than 2 players game cannot start
         if (players.size() < 2) {
-            System.out.println("There are not enough players, it is necessary almost 2 players, plase insert player.");
-            return;
+            return new PlayerReponse("There are not enough players, it is necessary almost 2 players, plase insert player.");
         }
 
         doesGameStarted = true;
-        System.out.println("Game started!");
-
+        return new PlayerReponse("Game started!");
     }
 
-    private static void handleMisunderstandPlayerCommand(String command) {
-        System.out.println("You wrote: handleMisunderstandPlayerCommand: " + command);
+    /**
+     * handles misunderstand command
+     * @return 
+     */
+    private static PlayerReponse handleMisunderstandPlayerCommand() {
+        return new PlayerReponse("Sorry I don't understant what you wrote, please enter a valid/known command");
     }
 
-    private static void handleExitCommand(String command) {
-        System.out.println("You wrote: handleExitCommand: " + command);
+    /**
+     * handles exit user command
+     * @return 
+     */
+    private static PlayerReponse handleExitCommand() {
+        return new PlayerReponse("Thank you for playing");
+    }
+    
+    
+    /**
+     * PRIVATE UTILITIES
+    */
+    
+    /**
+     * decodes target position
+     * @param targetPosition
+     * @return 
+     */
+    private static String decodeTargetPositionString(int targetPosition) {
+        if (targetPosition == BRIDGE_POSITION) {
+            return "The Bridge.";
+        }
+        return (targetPosition > WIN_POSITION ? String.valueOf(WIN_POSITION) : String.valueOf(targetPosition));
+    }
+    
+    /**
+     * decode from position
+     * @param fromPosition
+     * @return 
+     */
+    private static String decodeFromPositionString(int fromPosition){
+        return fromPosition == 0 ? "Start" : String.valueOf(fromPosition);
     }
 
+    /**
+     * returns a random number from 1 to 6
+     * @return 
+     */
     private static int rollTheDice() {
         return (int) (Math.random() * 6 + 1);
     }
 
     /**
      * find player by name case insensitive
-     *
      * @param enteredPlayerName
      * @return
      */
